@@ -8,8 +8,11 @@ from openai import AsyncOpenAI
 # 1. Page Configuration
 st.set_page_config(page_title="AI Receptionist Demo", page_icon="🤖")
 
-# 2. Authentication Logic
-CORRECT_PASSWORD = "client123"
+# 2. Authentication Logic (Streamlit secrets support + fallback)
+if "CLIENT_PASSWORD" in st.secrets:
+    CORRECT_PASSWORD = st.secrets["CLIENT_PASSWORD"]
+else:
+    CORRECT_PASSWORD = "client123"  # Local testing ke liye
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -18,24 +21,24 @@ st.sidebar.title("🔒 Client Authentication")
 input_pass = st.sidebar.text_input("Enter Access Key:", type="password")
 
 if st.sidebar.button("Login"):
-    # .strip() aur .lower() se spaces aur capital letters ka issue khatam ho jata hai
-    if input_pass.strip().lower() == CORRECT_PASSWORD:
+    if input_pass.strip() == CORRECT_PASSWORD:
         st.session_state.authenticated = True
         st.sidebar.success("Access Granted!")
         st.rerun()
     else:
         st.sidebar.error("Incorrect Password!")
 
-# Security Gate
+# Security Gate (Password hide kar diya hai ab!)
 if not st.session_state.authenticated:
     st.title("🤖 Business Receptionist AI Agent")
-    st.info("👈 Sidebar mein **client123** daal kar 'Login' button dabaayein.")
+    st.info("👈 Please enter your authorized Access Key in the sidebar to unlock the chat.")
     st.stop()
 
 # --- AUTHENTICATED: AGENT ENGINE STARTS HERE ---
 
 load_dotenv()
-openrouter_key = os.getenv("OPENROUTER_API_KEY")
+# Streamlit Cloud ya .env se key uthane ka secure tareeqa
+openrouter_key = st.secrets.get("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API_KEY")
 
 custom_client = AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
