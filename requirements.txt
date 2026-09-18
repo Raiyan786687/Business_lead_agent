@@ -1,4 +1,6 @@
 streamlit
-openai
-openai-agents
 python-dotenv
+openai
+gspread
+google-auth
+agents-sdk
