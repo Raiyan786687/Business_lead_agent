@@ -5,6 +5,18 @@ from dotenv import load_dotenv
 from agents import Agent, Runner, function_tool, set_default_openai_client
 from openai import AsyncOpenAI
 
+import gspread
+
+# Credentials load karein
+gc = gspread.service_account(filename="credentials.json")
+
+# Sheet ko naam se open karein
+sheet = gc.open("Business_Leads_Master").sheet1
+
+# Lead ka data add karne ke liye
+new_lead = ["Rayyan", "rayyan@example.com", "03001234567", "New Lead", "2026-09-18"]
+sheet.append_row(new_lead)
+
 # 1. Page Configuration
 st.set_page_config(page_title="AI Receptionist Demo", page_icon="🤖")
 
