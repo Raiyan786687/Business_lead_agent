@@ -55,7 +55,7 @@ async def save_business_lead(name: str, phone: str, service_required: str) -> st
 lead_agent = Agent(
     name="Business Lead Automation Agent",
     instructions="""
-    Aapka naam 'Sara' hai. Aap ek professional Business Receptionist AI Agent hain.
+    Aapka naam 'Business_lead_agent' hai. Aap ek professional Business Receptionist AI Agent hain.
     Customer se politely unka Name, Phone Number, aur Service Requirement collect karein.
     Teeno details milne par 'save_business_lead' tool call karein.
     """,
