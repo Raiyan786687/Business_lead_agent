@@ -8,29 +8,38 @@ from openai import AsyncOpenAI
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Scopes set karein
-scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
-client = gspread.authorize(creds)
-
-# Sheet ID se open karein
-sheet_id = "1epIVgmumDK7WoaswM7cWlcltv76c_AuG_xeZ7T9ltos"
-sheet = client.open_by_key(sheet_id).sheet1
-
-# Nayi Lead Add karne ka function
-def add_lead(business_name, contact_person, phone, email, status, notes):
-    new_row = [business_name, contact_person, phone, email, status, notes]
-    sheet.append_row(new_row)
-    print("Lead successfully added!")
-
 # 1. Page Configuration
 st.set_page_config(page_title="AI Receptionist Demo", page_icon="🤖")
 
-# 2. Authentication Logic (Streamlit secrets support + fallback)
+# 2. Google Sheets Setup (Local + Streamlit Cloud Support)
+scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+
+try:
+    if "gcp_service_account" in st.secrets:
+        # Streamlit Cloud secrets configuration
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    else:
+        # Local development setup
+        creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+
+    client = gspread.authorize(creds)
+    sheet_id = "1epIVgmumDK7WoaswM7cWlcltv76c_AuG_xeZ7T9ltos"
+    sheet = client.open_by_key(sheet_id).sheet1
+except Exception as e:
+    st.error(f"Google Sheets connection failed: {e}")
+
+# Function to write data into Google Sheet
+def add_lead(name: str, phone: str, service_required: str):
+    # Columns matching your sheet headers
+    new_row = [name, phone, service_required]
+    sheet.append_row(new_row)
+
+# 3. Authentication Logic
 if "CLIENT_PASSWORD" in st.secrets:
     CORRECT_PASSWORD = st.secrets["CLIENT_PASSWORD"]
 else:
-    CORRECT_PASSWORD = "client123"  # Local testing ke liye
+    CORRECT_PASSWORD = "client123"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -46,16 +55,13 @@ if st.sidebar.button("Login"):
     else:
         st.sidebar.error("Incorrect Password!")
 
-# Security Gate (Password hide kar diya hai ab!)
 if not st.session_state.authenticated:
     st.title("🤖 Business Receptionist AI Agent")
     st.info("👈 Please enter your authorized Access Key in the sidebar to unlock the chat.")
     st.stop()
 
-# --- AUTHENTICATED: AGENT ENGINE STARTS HERE ---
-
+# 4. OpenRouter / LLM Client Setup
 load_dotenv()
-# Streamlit Cloud ya .env se key uthane ka secure tareeqa
 openrouter_key = st.secrets.get("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API_KEY")
 
 custom_client = AsyncOpenAI(
@@ -64,11 +70,15 @@ custom_client = AsyncOpenAI(
 )
 set_default_openai_client(custom_client)
 
+# 5. Agent Function Tool (Connected to Google Sheets)
 @function_tool
 async def save_business_lead(name: str, phone: str, service_required: str) -> str:
-    """Saves client lead details into system logs."""
-    print(f"\n[DATABASE UPDATED] Lead Saved: {name} | {phone} | {service_required}\n")
-    return f"Lead saved successfully for {name}."
+    """Saves client lead details into system Google Sheet."""
+    try:
+        add_lead(name, phone, service_required)
+        return f"Lead saved successfully for {name} in Google Sheets."
+    except Exception as e:
+        return f"Failed to save lead: {str(e)}"
 
 lead_agent = Agent(
     name="Business Lead Automation Agent",
@@ -81,6 +91,7 @@ lead_agent = Agent(
     model="openai/gpt-4o-mini"
 )
 
+# 6. Streamlit Chat Interface
 st.title("🤖 Business Receptionist AI Agent")
 st.caption("24/7 Intelligent Customer Lead Capture System")
 
