@@ -6,16 +6,22 @@ from agents import Agent, Runner, function_tool, set_default_openai_client
 from openai import AsyncOpenAI
 
 import gspread
+from google.oauth2.service_account import Credentials
 
-# Credentials load karein
-gc = gspread.service_account(filename="credentials.json")
+# Scopes set karein
+scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+client = gspread.authorize(creds)
 
-# Sheet ko naam se open karein
-sheet = gc.open("Business_Leads_Master").sheet1
+# Sheet ID se open karein
+sheet_id = "1epIVgmumDK7WoaswM7cWlcltv76c_AuG_xeZ7T9ltos"
+sheet = client.open_by_key(sheet_id).sheet1
 
-# Lead ka data add karne ke liye
-new_lead = ["Rayyan", "rayyan@example.com", "03001234567", "New Lead", "2026-09-18"]
-sheet.append_row(new_lead)
+# Nayi Lead Add karne ka function
+def add_lead(business_name, contact_person, phone, email, status, notes):
+    new_row = [business_name, contact_person, phone, email, status, notes]
+    sheet.append_row(new_row)
+    print("Lead successfully added!")
 
 # 1. Page Configuration
 st.set_page_config(page_title="AI Receptionist Demo", page_icon="🤖")
